@@ -4,13 +4,8 @@ import streamlit as st
 from google import genai
 
 # Load configuration
-working_dir = os.path.dirname(os.path.realpath(__file__))
-config_path = f"{working_dir}/config.json"
-with open(config_path) as f:
-    config_data = json.load(f)
-
 # Initialize the new Gemini Client
-client = genai.Client(api_key=config_data["GEMINI_API_KEY"].strip())
+client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Page configuration
 st.set_page_config(
