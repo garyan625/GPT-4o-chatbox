@@ -4,7 +4,7 @@ from google import genai
 # 1. Page Configuration
 st.set_page_config(page_title="Gemini-Chat", page_icon="🤖", layout="centered")
 
-# 2. Persistence: Initialize Client once and keep it alive
+# 2. Persistence: Initialize Client
 @st.cache_resource
 def get_client():
     return genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
@@ -13,7 +13,10 @@ client = get_client()
 
 # 3. Sidebar: Settings & Controls
 st.sidebar.title("Settings")
-model_choice = st.sidebar.selectbox("Choose Model", ["gemini-1.5-flash", "gemini-1.5-pro"])
+
+# USE CURRENT STABLE MODEL NAMES
+model_options = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-2.5-pro"]
+model_choice = st.sidebar.selectbox("Choose Model", model_options)
 
 # Reset chat session if model selection changes
 if "current_model" not in st.session_state or st.session_state.current_model != model_choice:
@@ -44,7 +47,6 @@ if user_prompt := st.chat_input("Ask Gemini..."):
 
     with st.spinner("Thinking..."):
         try:
-            # Prepare contents (text + optional image)
             contents = [user_prompt]
             if uploaded_file:
                 image_bytes = uploaded_file.getvalue()
