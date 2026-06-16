@@ -55,7 +55,15 @@ if user_prompt := st.chat_input("Ask Gemini..."):
             # Streamed Response
             with st.chat_message("assistant"):
                 response_stream = st.session_state.chat.send_message_stream(contents)
-                assistant_response = st.write_stream(response_stream)
+                
+                # Create a helper generator to extract ONLY the text content
+                def stream_text():
+                    for chunk in response_stream:
+                        if chunk.text:
+                            yield chunk.text
+                
+                # Write the text chunks
+                assistant_response = st.write_stream(stream_text())
             
             st.session_state.chat_history.append({"role": "assistant", "content": assistant_response})
         except Exception as e:
