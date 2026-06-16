@@ -1,21 +1,24 @@
 import streamlit as st
 from google import genai
-import io
 
 # 1. Page Configuration
 st.set_page_config(page_title="Gemini-Chat", page_icon="🤖", layout="centered")
 
-# 2. Sidebar Settings
+# 2. Persistence: Initialize Client once and keep it alive
+@st.cache_resource
+def get_client():
+    return genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+
+client = get_client()
+
+# 3. Sidebar: Settings & Controls
 st.sidebar.title("Settings")
 model_choice = st.sidebar.selectbox("Choose Model", ["gemini-1.5-flash", "gemini-1.5-pro"])
 
-# Initialize Client
-client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
-
-# Initialize Session State
-if "chat" not in st.session_state:
+# Reset chat session if model selection changes
+if "current_model" not in st.session_state or st.session_state.current_model != model_choice:
+    st.session_state.current_model = model_choice
     st.session_state.chat = client.chats.create(model=model_choice)
-if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 # Clear Chat Button
@@ -24,25 +27,24 @@ if st.sidebar.button("Clear Chat History"):
     st.session_state.chat = client.chats.create(model=model_choice)
     st.rerun()
 
+# 4. Multimodal: Image Upload
+uploaded_file = st.sidebar.file_uploader("Upload Image (Optional)", type=["jpg", "png", "jpeg"])
+
 st.title("Gemini-Chat")
 
-# 3. Display Chat History
+# Display Chat History
 for message in st.session_state.chat_history:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 4. Image Upload & User Input
-uploaded_file = st.sidebar.file_uploader("Upload Image (Optional)", type=["jpg", "png", "jpeg"])
-user_prompt = st.chat_input("Ask Gemini...")
-
-if user_prompt:
-    # Display User Message
+# 5. Interaction: User Input & Streaming Response
+if user_prompt := st.chat_input("Ask Gemini..."):
     st.chat_message("user").markdown(user_prompt)
     st.session_state.chat_history.append({"role": "user", "content": user_prompt})
 
     with st.spinner("Thinking..."):
         try:
-            # Prepare contents
+            # Prepare contents (text + optional image)
             contents = [user_prompt]
             if uploaded_file:
                 image_bytes = uploaded_file.getvalue()
@@ -57,7 +59,7 @@ if user_prompt:
         except Exception as e:
             st.error(f"An error occurred: {e}")
 
-# 5. Export History
+# 6. Export History
 if st.session_state.chat_history:
     chat_text = "\n".join([f"{msg['role'].upper()}: {msg['content']}" for msg in st.session_state.chat_history])
     st.sidebar.download_button(
